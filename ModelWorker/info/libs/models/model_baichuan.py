@@ -53,8 +53,9 @@ class BaiChuan:
             self.logger.info(str({'max_length': self.max_length, 'max_new_tokens': self.max_new_tokens}) + '\n')
 
         # warmup
-        for _ in self.generate_stream('你好'):
-            pass
+        if self.model:
+            for _ in self.generate_stream('你好'):
+                pass
 
     def _load_model(self, model_path, device, dtype, just_tokenizer):
 
