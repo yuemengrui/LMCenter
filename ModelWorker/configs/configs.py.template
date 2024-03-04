@@ -1,0 +1,31 @@
+# *_*coding:utf-8 *_*
+# @Author : YueMengRui
+import os
+import uuid
+
+FASTAPI_TITLE = 'ModelWorker'
+FASTAPI_HOST = '0.0.0.0'
+FASTAPI_PORT = 24621
+
+WORKER_ID = str(uuid.uuid4())[:8]
+
+########################
+LOG_DIR = f'logs/{WORKER_ID}'
+os.makedirs(LOG_DIR, exist_ok=True)
+
+########################
+
+ModelWorkerConfig = {
+    "controller_addr": "http://xxx",
+    "worker_addr": f"http://xxx:{FASTAPI_PORT}",
+    "worker_id": WORKER_ID,
+    "worker_type": "",  # vllm or others
+    "model_type": "xx",  # ["Baichuan"]
+    "model_path": "xxx",
+    "model_name": "xxx",
+    "limit_worker_concurrency": 5,
+    "multimodal": False,
+    "device": "cuda",
+    "dtype": "float16",  # ["float32", "float16", "bfloat16"],
+    "gpu_memory_utilization": 0.9
+}
