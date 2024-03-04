@@ -161,7 +161,7 @@ class BaiChuan:
         return input_prompt, total_input
 
     @torch.inference_mode()
-    def generate_stream(self, prompt: str, history=[], generation_configs={}, **kwargs):
+    def generate_stream(self, prompt: str, history=[], generation_configs={}, stream=True, **kwargs):
 
         if not (('max_new_tokens' in generation_configs) and (
                 isinstance(generation_configs['max_new_tokens'], int)) and (
@@ -200,7 +200,7 @@ class BaiChuan:
                                     messages=messages,
                                     stream=True,
                                     generation_config=generation_config,
-                                    **kwargs):
+                                    ):
             generation_tokens = len(self.tokenizer.encode(resp))
             time_cost = time.time() - start
             average_speed = f"{generation_tokens / time_cost:.3f} token/s"
