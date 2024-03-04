@@ -133,4 +133,4 @@ async def generate_completion_stream(payload, worker_addr: str, start):
                         continue
                     resp = json.loads(chunk.decode())
                     resp['time_cost'].update({'total': f"{time.time() - start:.3f}s"})
-                    yield resp
+                    yield json.dumps(resp, ensure_ascii=False)
