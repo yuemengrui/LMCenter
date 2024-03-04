@@ -7,7 +7,7 @@ from loguru import logger
 from configs import LOG_DIR
 
 logger.add(
-    sink=f"{LOG_DIR}/controller-{{time:YYYY-MM-DD}}.log",
+    sink=f"{LOG_DIR}/{{time:YYYY-MM-DD}}.log",
     rotation="00:00",
     retention=30,
     mode="a+",

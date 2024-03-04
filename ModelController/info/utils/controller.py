@@ -81,6 +81,7 @@ class Controller:
         )
 
         logger.info(f"Register done: {worker_name}, {worker_status}")
+        logger.info(f"all workers: {self.worker_info}")
         return True
 
     def get_worker_status(self, worker_name: str):
@@ -113,7 +114,7 @@ class Controller:
         model_names = set()
 
         for w_name, w_info in self.worker_info.items():
-            model_names.update(w_info.model_name)
+            model_names.add(w_info.model_name)
 
         return list(model_names)
 
@@ -122,7 +123,7 @@ class Controller:
 
         for w_name, w_info in self.worker_info.items():
             if w_info.multimodal:
-                model_names.update(w_info.model_name)
+                model_names.add(w_info.model_name)
 
         return list(model_names)
 
@@ -131,7 +132,7 @@ class Controller:
 
         for w_name, w_info in self.worker_info.items():
             if not w_info.multimodal:
-                model_names.update(w_info.model_name)
+                model_names.add(w_info.model_name)
 
         return list(model_names)
 
