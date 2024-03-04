@@ -55,7 +55,6 @@ class VLLMWorker(BaseModelWorker):
         )
 
         engine_args = AsyncEngineArgs(model=model_path,
-                                      tokenizer=self.model.tokenizer,
                                       tensor_parallel_size=torch.cuda.device_count(),
                                       trust_remote_code=True,
                                       gpu_memory_utilization=gpu_memory_utilization)
