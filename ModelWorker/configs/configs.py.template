@@ -16,7 +16,7 @@ ModelWorkerConfig = {
     "worker_addr": f"http://xxx:{FASTAPI_PORT}",
     "worker_id": WORKER_ID,
     "worker_type": "",  # vllm or others
-    "model_type": "xx",  # ["Baichuan"]
+    "model_type": "xx",  # ['Baichuan', 'ChatGLM3']
     "model_path": "xxx",
     "model_name": "xxx",
     "limit_worker_concurrency": 5,

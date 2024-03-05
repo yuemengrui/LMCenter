@@ -97,7 +97,7 @@ class VLLMWorker(BaseModelWorker):
             stop_token_ids=stop_token_ids,
             max_tokens=max_new_tokens
         )
-        prompt, prompt_token_ids = self.model.build_chat_input(prompt=prompt)
+        prompt, prompt_token_ids = self.model.build_chat_inputs(prompt=prompt)
 
         start = time.time()
         results_generator = self.llm_engine.generate(prompt, sampling_params, request_id)

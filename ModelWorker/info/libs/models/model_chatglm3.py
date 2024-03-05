@@ -4,9 +4,8 @@ import gc
 import time
 import torch
 from typing import List
-from copy import deepcopy
 from .base_model import BaseModel
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModel, AutoTokenizer
 from transformers.generation.utils import GenerationConfig
 from transformers.utils.import_utils import is_torch_bf16_available
 
@@ -31,7 +30,7 @@ def torch_gc(device):
         torch.mps.empty_cache()
 
 
-class BaiChuan(BaseModel):
+class ChatGLM3(BaseModel):
 
     def __init__(self, model_path: str, model_name: str, logger=None, device='cuda', dtype=None, just_tokenizer=False,
                  **kwargs):
@@ -43,9 +42,9 @@ class BaiChuan(BaseModel):
         self.logger = logger
         self._load_model(model_path, device, dtype, just_tokenizer)
         try:
-            self.max_length = self.model.config.model_max_length
+            self.max_length = self.model.config.seq_length
         except:
-            self.max_length = 8 * 1024
+            self.max_length = 32 * 1024
         self.max_new_tokens = self.generation_config.max_new_tokens
 
         if self.logger:
@@ -59,26 +58,19 @@ class BaiChuan(BaseModel):
 
     def _load_model(self, model_path, device, dtype, just_tokenizer):
 
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            model_path,
-            use_fast=False,
-            trust_remote_code=True
-        )
-        self.generation_config = GenerationConfig.from_pretrained(model_path)
+        self.tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
+
+        self.generation_config = GenerationConfig(max_length=32 * 1024,
+                                                  max_new_tokens=2048,
+                                                  do_sample=True,
+                                                  top_p=0.8,
+                                                  temperature=0.8)
 
         if not just_tokenizer:
-            if device == 'mps':
-                self.model = AutoModelForCausalLM.from_pretrained(
-                    model_path,
-                    trust_remote_code=True
-                ).half().to('mps')
-            else:
-                self.model = AutoModelForCausalLM.from_pretrained(
-                    model_path,
-                    torch_dtype=str_to_torch_dtype(dtype),
-                    device_map="auto",
-                    trust_remote_code=True
-                )
+            self.model = AutoModel.from_pretrained(model_path,
+                                                   torch_dtype=str_to_torch_dtype(dtype),
+                                                   trust_remote_code=True,
+                                                   device_map="auto").eval()
 
             self.device = self.model.device
 
@@ -92,20 +84,13 @@ class BaiChuan(BaseModel):
         return code, prompt_token_len, self.max_length, self.model_name
 
     def token_counter(self, messages: List):
-        total_input, round_input = [], []
+        length = 0
         for message in messages:
-            content_tokens = self.tokenizer.encode(message['content'])
-            if message['role'] == 'user':
-                round_input = [self.generation_config.user_token_id] + content_tokens
-            elif message['role'] == 'assistant':
-                round_input = [
-                                  self.generation_config.assistant_token_id
-                              ] + content_tokens + [
-                                  self.generation_config.eos_token_id
-                              ]
-            total_input = total_input + round_input
+            length += len(self.tokenizer.build_single_message(role=message['role'],
+                                                              metadata=message.get('metadata', ''),
+                                                              message=message['content']))
 
-        return len(total_input)
+        return length
 
     def select_history(self, prompt, history, max_prompt_length):
         base_prompt_token_num = self.token_counter([{'role': 'user', 'content': prompt}])
@@ -127,23 +112,8 @@ class BaiChuan(BaseModel):
         if len(messages) == 0:
             messages = [{'role': 'user', 'content': prompt}]
 
-        total_input, round_input = [], []
-        for i, message in enumerate(messages[::-1]):
-            content_tokens = self.tokenizer.encode(message['content'])
-            if message['role'] == 'user':
-                round_input = [self.generation_config.user_token_id] + content_tokens + round_input
-                total_input = round_input + total_input
-                round_input = []
-            elif message['role'] == 'assistant':
-                round_input = [
-                                  self.generation_config.assistant_token_id
-                              ] + content_tokens + [
-                                  self.generation_config.eos_token_id
-                              ] + round_input
-            else:
-                self.logger.warning(f"message role not supported yet: {message['role']}\n")
+        total_input = self.tokenizer.build_chat_input(messages[-1]['content'], history=messages[:-1]).input_ids[0]
 
-        total_input.append(self.generation_config.assistant_token_id)
         input_prompt = self.tokenizer.decode(total_input)
         if self.logger:
             self.logger.info(str({'prompt_len': len(total_input), 'prompt': input_prompt}) + '\n')
@@ -152,21 +122,11 @@ class BaiChuan(BaseModel):
     @torch.inference_mode()
     def generate_stream(self, prompt: str, history=[], generation_configs={}, stream=True, **kwargs):
 
-        if not (('max_new_tokens' in generation_configs) and (
-                isinstance(generation_configs['max_new_tokens'], int)) and (
-                        128 < generation_configs['max_new_tokens'] < self.max_length)):
-            generation_configs.update({'max_new_tokens': self.max_new_tokens})
-
-        generation_config = deepcopy(self.generation_config)
-        generation_config.update(**generation_configs)
-
-        max_prompt_length = self.max_length - generation_configs['max_new_tokens']
+        max_prompt_length = self.max_length - self.max_new_tokens
 
         if self.logger:
             self.logger.info(
-                str({'max_prompt_length': max_prompt_length,
-                     'generation_configs': generation_configs,
-                     'genetation_config': generation_config}) + '\n' + str(
+                str({'max_prompt_length': max_prompt_length, 'generation_configs': generation_configs}) + '\n' + str(
                     kwargs) + '\n')
 
         history = self.select_history(prompt, history, max_prompt_length)
@@ -185,11 +145,11 @@ class BaiChuan(BaseModel):
                                   'prompt': input_prompt}) + '\n')
 
         start = time.time()
-        for resp in self.model.chat(tokenizer=self.tokenizer,
-                                    messages=messages,
-                                    stream=True,
-                                    generation_config=generation_config,
-                                    ):
+        for resp, _ in self.model.stream_chat(tokenizer=self.tokenizer,
+                                              query=prompt,
+                                              history=messages[:-1],
+                                              **generation_configs
+                                              ):
             generation_tokens = len(self.tokenizer.encode(resp))
             time_cost = time.time() - start
             average_speed = f"{generation_tokens / time_cost:.3f} token/s"
