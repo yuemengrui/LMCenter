@@ -12,17 +12,17 @@ WORKER_ID = str(uuid.uuid4())[:8]
 ########################
 
 ModelWorkerConfig = {
-    "controller_addr": "http://xxx",
-    "worker_addr": f"http://xxx:{FASTAPI_PORT}",
+    "controller_addr": "http://model_controller:24620",
+    "worker_addr": f"http://model_worker_qwen2_7b_server:{FASTAPI_PORT}",
     "worker_id": WORKER_ID,
     "worker_type": "",  # vllm or others
-    "model_type": "xx",  # ['Baichuan', 'ChatGLM3', 'Qwen2']
-    "model_path": "xxx",
-    "model_name": "xxx",
+    "model_type": "Qwen2",  # ['Baichuan', 'ChatGLM3', 'Qwen2']
+    "model_path": "/workspace/Models/Qwen1.5-7B-Chat",
+    "model_name": "Qwen1.5_7B",
     "limit_worker_concurrency": 5,
     "multimodal": False,
     "device": "cuda",
-    "dtype": "float16",  # ["float32", "float16", "bfloat16"],
+    "dtype": "bfloat16",  # ["float32", "float16", "bfloat16"],
     "gpu_memory_utilization": 0.9
 }
 

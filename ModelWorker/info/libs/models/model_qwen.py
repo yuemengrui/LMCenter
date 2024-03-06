@@ -31,7 +31,7 @@ def torch_gc(device):
         torch.mps.empty_cache()
 
 
-class Qwen(BaseModel):
+class Qwen2(BaseModel):
 
     def __init__(self, model_path: str, model_name: str, logger=None, device='cuda', dtype=None, just_tokenizer=False,
                  **kwargs):
