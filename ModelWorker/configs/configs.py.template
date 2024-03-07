@@ -12,7 +12,7 @@ WORKER_ID = str(uuid.uuid4())[:8]
 ########################
 
 ModelWorkerConfig = {
-    "controller_addr": "http://xxx",
+    "controller_addr": "http://model_controller:24620",
     "worker_addr": f"http://xxx:{FASTAPI_PORT}",
     "worker_id": WORKER_ID,
     "worker_type": "",  # vllm or others
