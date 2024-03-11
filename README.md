@@ -57,6 +57,7 @@ ModelWorkerConfig = {
     "worker_type": "",  # vllm or others // worker类型，可以选择是否启用vllm
     "model_type": "xx",  # ['Baichuan', 'ChatGLM3', 'Qwen2']  // 支持的模型类型
     "model_path": "xxx",  // 模型路径，为上面docker-compose.yml中挂载的模型文件夹, 例如：/workspace/Models/Baichuan2-13B-Chat
+    "lora_path": "",  // lora路径
     "model_name": "xxx",  // 模型名
     "limit_worker_concurrency": 5,
     "multimodal": False,  // 是否是多模态模型
