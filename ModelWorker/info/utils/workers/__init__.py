@@ -1,5 +1,6 @@
 # *_*coding:utf-8 *_*
 # @Author : YueMengRui
+import os
 import asyncio
 from mylogger import logger
 from .model_worker import ModelWorker
@@ -9,8 +10,8 @@ __all__ = ['build_worker', 'release_worker_semaphore', 'acquire_worker_semaphore
            'create_background_tasks_vllm', 'ModelWorker']
 
 
-def build_worker(worker_type=None, **kwargs):
-    if worker_type == 'vllm':
+def build_worker(worker_type=None, lora_path='', **kwargs):
+    if worker_type == 'vllm' and (not os.path.exists(lora_path)):
         try:
             from .vllm_worker import VLLMWorker
             return VLLMWorker(**kwargs)

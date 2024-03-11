@@ -15,6 +15,7 @@ class ChatRequest(BaseModel):
     history: List = Field(default=[], description="历史记录")
     generation_configs: Dict = {}
     stream: bool = Field(default=True, description="是否流式输出")
+    use_lora: bool = Field(default=False, description="是否使用lora模型生成结果")
 
 
 class WorkerRegisterRequest(BaseModel):

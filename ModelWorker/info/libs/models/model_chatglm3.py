@@ -1,46 +1,35 @@
 # *_*coding:utf-8 *_*
 # @Author : YueMengRui
+import os
 import gc
 import time
 import torch
 from typing import List
-from .base_model import BaseModel
+from peft import PeftModel
+from .base_model import BaseModel, torch_gc, str_to_torch_dtype
 from transformers import AutoModel, AutoTokenizer
 from transformers.generation.utils import GenerationConfig
-from transformers.utils.import_utils import is_torch_bf16_available
-
-
-def str_to_torch_dtype(dtype: str):
-    if dtype is None:
-        return None
-    elif dtype == "float32":
-        return torch.float32
-    elif dtype == "bfloat16" and is_torch_bf16_available():
-        return torch.bfloat16
-    else:
-        return torch.float16
-
-
-def torch_gc(device):
-    if torch.cuda.is_available():
-        with torch.cuda.device(device):
-            torch.cuda.empty_cache()
-            torch.cuda.ipc_collect()
-    elif torch.backends.mps.is_available():
-        torch.mps.empty_cache()
 
 
 class ChatGLM3(BaseModel):
 
-    def __init__(self, model_path: str, model_name: str, logger=None, device='cuda', dtype=None, just_tokenizer=False,
+    def __init__(self,
+                 model_path: str,
+                 model_name: str,
+                 logger=None,
+                 device='cuda',
+                 dtype=None,
+                 lora_path='',
+                 just_tokenizer=False,
                  **kwargs):
         self.model_name = model_name
         self.model = None
+        self.lora_model = None
         self.tokenizer = None
         self.generation_config = None
         self.device = None
         self.logger = logger
-        self._load_model(model_path, device, dtype, just_tokenizer)
+        self._load_model(model_path, lora_path, device, dtype, just_tokenizer)
         try:
             self.max_length = self.model.config.seq_length
         except:
@@ -56,7 +45,7 @@ class ChatGLM3(BaseModel):
             for _ in self.generate_stream('你好'):
                 pass
 
-    def _load_model(self, model_path, device, dtype, just_tokenizer):
+    def _load_model(self, model_path, lora_path, device, dtype, just_tokenizer):
 
         self.tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
 
@@ -71,6 +60,11 @@ class ChatGLM3(BaseModel):
                                                    torch_dtype=str_to_torch_dtype(dtype),
                                                    trust_remote_code=True,
                                                    device_map="auto").eval()
+
+            if os.path.exists(lora_path):
+                if self.logger:
+                    self.logger.info(f"load lora from {lora_path}")
+                    self.lora_model = PeftModel.from_pretrained(self.model, lora_path)
 
             self.device = self.model.device
 
@@ -120,7 +114,7 @@ class ChatGLM3(BaseModel):
         return input_prompt, total_input
 
     @torch.inference_mode()
-    def generate_stream(self, prompt: str, history=[], generation_configs={}, stream=True, **kwargs):
+    def generate_stream(self, prompt: str, history=[], generation_configs={}, use_lora=False, **kwargs):
 
         max_prompt_length = self.max_length - self.max_new_tokens
 
@@ -145,11 +139,16 @@ class ChatGLM3(BaseModel):
                                   'prompt': input_prompt}) + '\n')
 
         start = time.time()
-        for resp, _ in self.model.stream_chat(tokenizer=self.tokenizer,
-                                              query=prompt,
-                                              history=messages[:-1],
-                                              **generation_configs
-                                              ):
+        if use_lora and self.lora_model is not None:
+            generate_model = self.lora_model
+        else:
+            generate_model = self.model
+
+        for resp, _ in generate_model.stream_chat(tokenizer=self.tokenizer,
+                                                  query=prompt,
+                                                  history=messages[:-1],
+                                                  **generation_configs
+                                                  ):
             generation_tokens = len(self.tokenizer.encode(resp))
             time_cost = time.time() - start
             average_speed = f"{generation_tokens / time_cost:.3f} token/s"

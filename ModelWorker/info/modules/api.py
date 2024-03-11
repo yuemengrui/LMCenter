@@ -37,9 +37,9 @@ async def count_token(request: Request,
 
 @router.api_route('/ai/worker/generate', methods=['POST'], summary="Generate")
 @limiter.limit(API_LIMIT['chat'])
-async def llm_chat_simple(request: Request,
-                          req: ChatRequest
-                          ):
+async def llm_chat(request: Request,
+                   req: ChatRequest
+                   ):
     logger.info(req.dict())
 
     await acquire_worker_semaphore(worker)
