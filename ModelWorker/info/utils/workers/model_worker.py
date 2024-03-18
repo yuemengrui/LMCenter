@@ -66,3 +66,8 @@ class ModelWorker(BaseModelWorker):
                 "errmsg": error_map[RET.SERVERERR]
             }
             yield json.dumps(ret, ensure_ascii=False).encode() + b"\0"
+
+    def generate_gate(self, **kwargs):
+        for x in self.generate_stream_gate(**kwargs):
+            pass
+        return json.loads(x[:-1].decode())

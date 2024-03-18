@@ -115,8 +115,3 @@ class BaseModelWorker:
 
     def generate_stream_gate(self, **kwargs):
         raise NotImplementedError
-
-    async def generate_gate(self, **kwargs):
-        async for x in self.generate_stream_gate(**kwargs):
-            pass
-        return json.loads(x[:-1].decode())
