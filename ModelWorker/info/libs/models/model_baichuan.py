@@ -25,7 +25,7 @@ class BaiChuan(BaseModel):
                  **kwargs):
         self.model_name = model_name
         self.model = None
-        self.lora_model = None
+        self.is_lora = False
         self.tokenizer = None
         self.generation_config = None
         self.device = None
@@ -72,7 +72,8 @@ class BaiChuan(BaseModel):
             if os.path.exists(lora_path):
                 if self.logger:
                     self.logger.info(f"load lora from {lora_path}")
-                    self.lora_model = PeftModel.from_pretrained(self.model, lora_path)
+                    self.model = PeftModel.from_pretrained(self.model, lora_path)
+                    self.is_lora = True
 
             self.device = self.model.device
 
@@ -179,28 +180,44 @@ class BaiChuan(BaseModel):
                                   'prompt': input_prompt}) + '\n')
 
         start = time.time()
-        if use_lora and self.lora_model is not None:
-            generate_model = self.lora_model
-        else:
-            generate_model = self.model
 
-        for resp in generate_model.chat(tokenizer=self.tokenizer,
+        if (not use_lora) and self.is_lora:
+            with self.model.disable_adapter():
+                for resp in self.model.chat(tokenizer=self.tokenizer,
+                                            messages=messages,
+                                            stream=True,
+                                            generation_config=generation_config,
+                                            ):
+                    generation_tokens = len(self.tokenizer.encode(resp))
+                    time_cost = time.time() - start
+                    average_speed = f"{generation_tokens / time_cost:.3f} token/s"
+                    yield {"model_name": self.model_name,
+                           "answer": resp,
+                           "history": history,
+                           "time_cost": {"generation": f"{time_cost:.3f}s"},
+                           "usage": {"prompt_tokens": prompt_tokens,
+                                     "generation_tokens": generation_tokens,
+                                     "total_tokens": prompt_tokens + generation_tokens,
+                                     "average_speed": average_speed}
+                           }
+        else:
+            for resp in self.model.chat(tokenizer=self.tokenizer,
                                         messages=messages,
                                         stream=True,
                                         generation_config=generation_config,
                                         ):
-            generation_tokens = len(self.tokenizer.encode(resp))
-            time_cost = time.time() - start
-            average_speed = f"{generation_tokens / time_cost:.3f} token/s"
-            yield {"model_name": self.model_name,
-                   "answer": resp,
-                   "history": history,
-                   "time_cost": {"generation": f"{time_cost:.3f}s"},
-                   "usage": {"prompt_tokens": prompt_tokens,
-                             "generation_tokens": generation_tokens,
-                             "total_tokens": prompt_tokens + generation_tokens,
-                             "average_speed": average_speed}
-                   }
+                generation_tokens = len(self.tokenizer.encode(resp))
+                time_cost = time.time() - start
+                average_speed = f"{generation_tokens / time_cost:.3f} token/s"
+                yield {"model_name": self.model_name,
+                       "answer": resp,
+                       "history": history,
+                       "time_cost": {"generation": f"{time_cost:.3f}s"},
+                       "usage": {"prompt_tokens": prompt_tokens,
+                                 "generation_tokens": generation_tokens,
+                                 "total_tokens": prompt_tokens + generation_tokens,
+                                 "average_speed": average_speed}
+                       }
 
         torch_gc(self.device)
         gc.collect()
