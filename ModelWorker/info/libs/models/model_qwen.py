@@ -25,7 +25,7 @@ class Qwen2(BaseModel):
                  **kwargs):
         self.model_name = model_name
         self.model = None
-        self.lora_model = None
+        self.is_lora = False
         self.tokenizer = None
         self.generation_config = None
         self.device = None
@@ -66,7 +66,8 @@ class Qwen2(BaseModel):
             if os.path.exists(lora_path):
                 if self.logger:
                     self.logger.info(f"load lora from {lora_path}")
-                    self.lora_model = PeftModel.from_pretrained(self.model, lora_path)
+                    self.model = PeftModel.from_pretrained(self.model, lora_path)
+                    self.is_lora = True
 
             self.device = self.model.device
 
@@ -153,30 +154,48 @@ class Qwen2(BaseModel):
 
         start = time.time()
 
-        if use_lora and self.lora_model is not None:
-            generate_model = self.lora_model
+        if (not use_lora) and self.is_lora:
+            with self.model.disable_adapter():
+                streamer = TextIteratorStreamer(self.tokenizer, skip_prompt=True, skip_special_tokens=True)
+                thread = Thread(target=self.model.generate,
+                                kwargs=dict(inputs=prompt_token_ids, streamer=streamer,
+                                            max_new_tokens=generation_configs['max_new_tokens']))
+                thread.start()
+
+                answer = ''
+                for resp in streamer:
+                    answer += resp
+                    generation_tokens = len(self.tokenizer.encode(answer))
+                    time_cost = time.time() - start
+                    average_speed = f"{generation_tokens / time_cost:.3f} token/s"
+                    yield {"model_name": self.model_name,
+                           "answer": answer,
+                           "history": history,
+                           "time_cost": {"generation": f"{time_cost:.3f}s"},
+                           "usage": {"prompt_tokens": len(prompt_token_ids[0]), "generation_tokens": generation_tokens,
+                                     "total_tokens": len(prompt_token_ids[0]) + generation_tokens,
+                                     "average_speed": average_speed}}
+
         else:
-            generate_model = self.model
+            streamer = TextIteratorStreamer(self.tokenizer, skip_prompt=True, skip_special_tokens=True)
+            thread = Thread(target=self.model.generate,
+                            kwargs=dict(inputs=prompt_token_ids, streamer=streamer,
+                                        max_new_tokens=generation_configs['max_new_tokens']))
+            thread.start()
 
-        streamer = TextIteratorStreamer(self.tokenizer, skip_prompt=True, skip_special_tokens=True)
-        thread = Thread(target=generate_model.generate,
-                        kwargs=dict(inputs=prompt_token_ids, streamer=streamer,
-                                    max_new_tokens=generation_configs['max_new_tokens']))
-        thread.start()
-
-        answer = ''
-        for resp in streamer:
-            answer += resp
-            generation_tokens = len(self.tokenizer.encode(answer))
-            time_cost = time.time() - start
-            average_speed = f"{generation_tokens / time_cost:.3f} token/s"
-            yield {"model_name": self.model_name,
-                   "answer": answer,
-                   "history": history,
-                   "time_cost": {"generation": f"{time_cost:.3f}s"},
-                   "usage": {"prompt_tokens": len(prompt_token_ids[0]), "generation_tokens": generation_tokens,
-                             "total_tokens": len(prompt_token_ids[0]) + generation_tokens,
-                             "average_speed": average_speed}}
+            answer = ''
+            for resp in streamer:
+                answer += resp
+                generation_tokens = len(self.tokenizer.encode(answer))
+                time_cost = time.time() - start
+                average_speed = f"{generation_tokens / time_cost:.3f} token/s"
+                yield {"model_name": self.model_name,
+                       "answer": answer,
+                       "history": history,
+                       "time_cost": {"generation": f"{time_cost:.3f}s"},
+                       "usage": {"prompt_tokens": len(prompt_token_ids[0]), "generation_tokens": generation_tokens,
+                                 "total_tokens": len(prompt_token_ids[0]) + generation_tokens,
+                                 "average_speed": average_speed}}
 
         torch_gc(self.device)
         gc.collect()
