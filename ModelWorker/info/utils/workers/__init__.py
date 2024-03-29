@@ -18,7 +18,7 @@ def build_worker(worker_type=None, lora_path='', **kwargs):
         except Exception as e:
             logger.error({'EXCEPTION': e})
 
-    return ModelWorker(**kwargs)
+    return ModelWorker(lora_path=lora_path, **kwargs)
 
 
 def release_worker_semaphore(worker):

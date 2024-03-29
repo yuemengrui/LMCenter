@@ -138,7 +138,6 @@ class VLLMWorker(BaseModelWorker):
             if aborted:
                 break
 
-
     async def generate_gate(self, **kwargs):
         async for x in self.generate_stream_gate(**kwargs):
             pass
