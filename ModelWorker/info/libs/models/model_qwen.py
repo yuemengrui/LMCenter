@@ -22,7 +22,9 @@ class Qwen2(BaseModel):
                  dtype=None,
                  lora_path='',
                  just_tokenizer=False,
+                 dead_line=10 * 60,
                  **kwargs):
+        self.dead_line = dead_line if isinstance(dead_line, int) else 10 * 60
         self.model_name = model_name
         self.model = None
         self.is_lora = False
@@ -167,6 +169,11 @@ class Qwen2(BaseModel):
                     answer += resp
                     generation_tokens = len(self.tokenizer.encode(answer))
                     time_cost = time.time() - start
+
+                    # exit
+                    if time_cost > self.dead_line:
+                        break
+
                     average_speed = f"{generation_tokens / time_cost:.3f} token/s"
                     yield {"model_name": self.model_name,
                            "answer": answer,
@@ -188,6 +195,11 @@ class Qwen2(BaseModel):
                 answer += resp
                 generation_tokens = len(self.tokenizer.encode(answer))
                 time_cost = time.time() - start
+
+                # exit
+                if time_cost > self.dead_line:
+                    break
+
                 average_speed = f"{generation_tokens / time_cost:.3f} token/s"
                 yield {"model_name": self.model_name,
                        "answer": answer,

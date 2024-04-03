@@ -24,7 +24,8 @@ ModelWorkerConfig = {
     "multimodal": False,  # 是否是多模态模型
     "device": "cuda",
     "dtype": "bfloat16",  # ["float32", "float16", "bfloat16"],  # 模型精度，推荐bfloat16
-    "gpu_memory_utilization": 0.9
+    "gpu_memory_utilization": 0.9,
+    "dead_line": 10 * 60
 }
 
 
