@@ -154,10 +154,11 @@ class Qwen2(BaseModel):
             self.logger.info(str({'prompt_tokens': prompt_tokens, 'prompt_str_len': len(input_prompt),
                                   'prompt': input_prompt}) + '\n')
 
-        start = time.time()
+        current_tokens = prompt_tokens
         first_token_latency = None
         last_token_time = time.time()
         token_latency = []
+        start = time.time()
         if (not use_lora) and self.is_lora:
             with self.model.disable_adapter():
                 streamer = TextIteratorStreamer(self.tokenizer, skip_prompt=True, skip_special_tokens=True)
@@ -171,11 +172,12 @@ class Qwen2(BaseModel):
                     answer += resp
                     if first_token_latency is None:
                         first_token_latency = time.time() - start
-                    token_latency.append(time.time() - last_token_time)
-                    token_latency.sort()
-                    avg_token_latency = sum(token_latency) / len(token_latency)
+                    token_latency.append([time.time() - last_token_time, current_tokens])
+                    token_latency.sort(key=lambda x: x[0])
+                    avg_token_latency = sum([x[0] for x in token_latency]) / len(token_latency)
                     last_token_time = time.time()
                     generation_tokens = len(self.tokenizer.encode(answer))
+                    current_tokens += generation_tokens
                     time_cost = time.time() - start
 
                     # exit
@@ -191,8 +193,8 @@ class Qwen2(BaseModel):
                             "generation": f"{time_cost:.3f}s",
                             "first_token_latency": f"{first_token_latency * 1000:.2f}ms",
                             "token_latency": {
-                                "min": f"{token_latency[0] * 1000:.2f}ms",
-                                "max": f"{token_latency[-1] * 1000:.2f}ms",
+                                "min": f"{token_latency[0][0] * 1000:.2f}ms in {token_latency[0][1]}tokens",
+                                "max": f"{token_latency[-1][0] * 1000:.2f}ms in {token_latency[-1][1]}tokens",
                                 "avg": f"{avg_token_latency * 1000:.2f}ms",
                             }
                         },
@@ -216,11 +218,12 @@ class Qwen2(BaseModel):
                 answer += resp
                 if first_token_latency is None:
                     first_token_latency = time.time() - start
-                token_latency.append(time.time() - last_token_time)
-                token_latency.sort()
-                avg_token_latency = sum(token_latency) / len(token_latency)
+                token_latency.append([time.time() - last_token_time, current_tokens])
+                token_latency.sort(key=lambda x: x[0])
+                avg_token_latency = sum([x[0] for x in token_latency]) / len(token_latency)
                 last_token_time = time.time()
                 generation_tokens = len(self.tokenizer.encode(answer))
+                current_tokens += generation_tokens
                 time_cost = time.time() - start
 
                 # exit
@@ -236,8 +239,8 @@ class Qwen2(BaseModel):
                         "generation": f"{time_cost:.3f}s",
                         "first_token_latency": f"{first_token_latency * 1000:.2f}ms",
                         "token_latency": {
-                            "min": f"{token_latency[0] * 1000:.2f}ms",
-                            "max": f"{token_latency[-1] * 1000:.2f}ms",
+                            "min": f"{token_latency[0][0] * 1000:.2f}ms in {token_latency[0][1]}tokens",
+                            "max": f"{token_latency[-1][0] * 1000:.2f}ms in {token_latency[-1][1]}tokens",
                             "avg": f"{avg_token_latency * 1000:.2f}ms",
                         }
                     },
@@ -260,8 +263,8 @@ class Qwen2(BaseModel):
                     "generation": f"{time_cost:.3f}s",
                     "first_token_latency": f"{first_token_latency * 1000:.2f}ms",
                     "token_latency": {
-                        "min": f"{token_latency[0] * 1000:.2f}ms",
-                        "max": f"{token_latency[-1] * 1000:.2f}ms",
+                        "min": f"{token_latency[0][0] * 1000:.2f}ms in {token_latency[0][1]}tokens",
+                        "max": f"{token_latency[-1][0] * 1000:.2f}ms in {token_latency[-1][1]}tokens",
                         "avg": f"{avg_token_latency * 1000:.2f}ms",
                     }
                 },
