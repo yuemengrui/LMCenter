@@ -182,7 +182,8 @@ class BaiChuan(BaseModel):
                                   'prompt': input_prompt}) + '\n')
 
         start = time.time()
-
+        last_token_time = time.time()
+        token_latency = []
         if (not use_lora) and self.is_lora:
             with self.model.disable_adapter():
                 for resp in self.model.chat(tokenizer=self.tokenizer,
@@ -190,6 +191,11 @@ class BaiChuan(BaseModel):
                                             stream=True,
                                             generation_config=generation_config,
                                             ):
+                    first_token_latency = time.time() - start
+                    token_latency.append(time.time() - last_token_time)
+                    token_latency.sort()
+                    avg_token_latency = sum(token_latency) / len(token_latency)
+                    last_token_time = time.time()
                     generation_tokens = len(self.tokenizer.encode(resp))
                     time_cost = time.time() - start
 
@@ -198,21 +204,37 @@ class BaiChuan(BaseModel):
                         break
 
                     average_speed = f"{generation_tokens / time_cost:.3f} token/s"
-                    yield {"model_name": self.model_name,
-                           "answer": resp,
-                           "history": history,
-                           "time_cost": {"generation": f"{time_cost:.3f}s"},
-                           "usage": {"prompt_tokens": prompt_tokens,
-                                     "generation_tokens": generation_tokens,
-                                     "total_tokens": prompt_tokens + generation_tokens,
-                                     "average_speed": average_speed}
-                           }
+                    yield {
+                        "model_name": self.model_name,
+                        "answer": resp,
+                        "history": history,
+                        "time_cost": {
+                            "generation": f"{time_cost:.3f}s",
+                            "first_token_latency": f"{first_token_latency * 1000:.2f}ms",
+                            "token_latency": {
+                                "min": f"{token_latency[0] * 1000:.2f}ms",
+                                "max": f"{token_latency[-1] * 1000:.2f}ms",
+                                "avg": f"{avg_token_latency * 1000:.2f}ms",
+                            }
+                        },
+                        "usage": {
+                            "prompt_tokens": prompt_tokens,
+                            "generation_tokens": generation_tokens,
+                            "total_tokens": prompt_tokens + generation_tokens,
+                            "average_speed": average_speed
+                        }
+                    }
         else:
             for resp in self.model.chat(tokenizer=self.tokenizer,
                                         messages=messages,
                                         stream=True,
                                         generation_config=generation_config,
                                         ):
+                first_token_latency = time.time() - start
+                token_latency.append(time.time() - last_token_time)
+                token_latency.sort()
+                avg_token_latency = sum(token_latency) / len(token_latency)
+                last_token_time = time.time()
                 generation_tokens = len(self.tokenizer.encode(resp))
                 time_cost = time.time() - start
 
@@ -221,26 +243,47 @@ class BaiChuan(BaseModel):
                     break
 
                 average_speed = f"{generation_tokens / time_cost:.3f} token/s"
-                yield {"model_name": self.model_name,
-                       "answer": resp,
-                       "history": history,
-                       "time_cost": {"generation": f"{time_cost:.3f}s"},
-                       "usage": {"prompt_tokens": prompt_tokens,
-                                 "generation_tokens": generation_tokens,
-                                 "total_tokens": prompt_tokens + generation_tokens,
-                                 "average_speed": average_speed}
-                       }
+                yield {
+                    "model_name": self.model_name,
+                    "answer": resp,
+                    "history": history,
+                    "time_cost": {
+                        "generation": f"{time_cost:.3f}s",
+                        "first_token_latency": f"{first_token_latency * 1000:.2f}ms",
+                        "token_latency": {
+                            "min": f"{token_latency[0] * 1000:.2f}ms",
+                            "max": f"{token_latency[-1] * 1000:.2f}ms",
+                            "avg": f"{avg_token_latency * 1000:.2f}ms",
+                        }
+                    },
+                    "usage": {
+                        "prompt_tokens": prompt_tokens,
+                        "generation_tokens": generation_tokens,
+                        "total_tokens": prompt_tokens + generation_tokens,
+                        "average_speed": average_speed
+                    }
+                }
 
         torch_gc(self.device)
         gc.collect()
         if self.logger:
-            self.logger.info({"model_name": self.model_name,
-                              "answer": resp,
-                              "history": history,
-                              "time_cost": {"generation": f"{time_cost:.3f}s"},
-                              "usage": {
-                                  "prompt_tokens": prompt_tokens,
-                                  "generation_tokens": generation_tokens,
-                                  "total_tokens": prompt_tokens + generation_tokens,
-                                  "average_speed": average_speed}
-                              })
+            self.logger.info({
+                "model_name": self.model_name,
+                "answer": resp,
+                "history": history,
+                "time_cost": {
+                    "generation": f"{time_cost:.3f}s",
+                    "first_token_latency": f"{first_token_latency * 1000:.2f}ms",
+                    "token_latency": {
+                        "min": f"{token_latency[0] * 1000:.2f}ms",
+                        "max": f"{token_latency[-1] * 1000:.2f}ms",
+                        "avg": f"{avg_token_latency * 1000:.2f}ms",
+                    }
+                },
+                "usage": {
+                    "prompt_tokens": prompt_tokens,
+                    "generation_tokens": generation_tokens,
+                    "total_tokens": prompt_tokens + generation_tokens,
+                    "average_speed": average_speed
+                }
+            })
