@@ -155,6 +155,7 @@ class Qwen2(BaseModel):
                                   'prompt': input_prompt}) + '\n')
 
         start = time.time()
+        first_token_latency = None
         last_token_time = time.time()
         token_latency = []
         if (not use_lora) and self.is_lora:
@@ -168,7 +169,8 @@ class Qwen2(BaseModel):
                 answer = ''
                 for resp in streamer:
                     answer += resp
-                    first_token_latency = time.time() - start
+                    if first_token_latency is None:
+                        first_token_latency = time.time() - start
                     token_latency.append(time.time() - last_token_time)
                     token_latency.sort()
                     avg_token_latency = sum(token_latency) / len(token_latency)
@@ -212,7 +214,8 @@ class Qwen2(BaseModel):
             answer = ''
             for resp in streamer:
                 answer += resp
-                first_token_latency = time.time() - start
+                if first_token_latency is None:
+                    first_token_latency = time.time() - start
                 token_latency.append(time.time() - last_token_time)
                 token_latency.sort()
                 avg_token_latency = sum(token_latency) / len(token_latency)
