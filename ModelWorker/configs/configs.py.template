@@ -2,6 +2,7 @@
 # @Author : YueMengRui
 import os
 import uuid
+import datetime
 
 FASTAPI_TITLE = 'ModelWorker'
 FASTAPI_HOST = '0.0.0.0'
@@ -30,5 +31,5 @@ ModelWorkerConfig = {
 
 
 ########################
-LOG_DIR = f"logs/model-worker-{ModelWorkerConfig['model_name']}-{WORKER_ID}"
+LOG_DIR = f"logs/model-worker-{ModelWorkerConfig['model_name']}-{WORKER_ID}-{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
 os.makedirs(LOG_DIR, exist_ok=True)

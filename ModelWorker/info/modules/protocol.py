@@ -10,7 +10,7 @@ class ErrorResponse(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    prompt: str
+    prompt: Union[str, List]
     history: List = Field(default=[], description="历史记录")
     generation_configs: Dict = {}
     stream: bool = Field(default=True, description="是否流式输出")
@@ -18,13 +18,13 @@ class ChatRequest(BaseModel):
 
 
 class TokenCountRequest(BaseModel):
-    prompt: str
+    prompt: Union[str, List]
 
 
 class TokenCountResponse(BaseModel):
     object: str = 'token_count'
     model_name: str
-    prompt: str
+    prompt: Union[str, List]
     prompt_tokens: int
     max_tokens: int
     status: str
