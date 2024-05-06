@@ -4,8 +4,9 @@ from .model_baichuan import BaiChuan
 from .model_chatglm3 import ChatGLM3
 from .model_qwen import Qwen2
 from .model_qwenvl import QwenVL
+from .model_yi import Yi
 
-model_types = ['Baichuan', 'ChatGLM3', 'Qwen2', 'QwenVL']
+model_types = ['Baichuan', 'ChatGLM3', 'Qwen2', 'QwenVL', 'Yi']
 
 
 def load_model(model_type, **kwargs):
@@ -17,6 +18,8 @@ def load_model(model_type, **kwargs):
         model = Qwen2(**kwargs)
     elif model_type == 'QwenVL':
         model = QwenVL(**kwargs)
+    elif model_type == 'Yi':
+        model = Yi(**kwargs)
     else:
         raise f'Unsupported model type:{model_type}, only {model_types} are supported'
 

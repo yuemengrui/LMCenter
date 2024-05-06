@@ -14,19 +14,19 @@ WORKER_ID = str(uuid.uuid4())[:8]
 
 ModelWorkerConfig = {
     "controller_addr": "http://model_controller:24620",  # controller地址
-    "worker_addr": f"http://xxx:{FASTAPI_PORT}",  # worker地址，将xxx替换为你的容器名
+    "worker_addr": f"http://model_worker_yi_34b_server:{FASTAPI_PORT}",  # worker地址，将xxx替换为你的容器名
     "worker_id": WORKER_ID,
     "worker_type": "",  # vllm or others, worker类型，可以选择是否启用vllm
-    "model_type": "xx",  # ['Baichuan', 'ChatGLM3', 'Qwen2', 'Yi'] 支持的模型类型
-    "model_path": "xxx",  # 模型路径
+    "model_type": "Yi",  # ['Baichuan', 'ChatGLM3', 'Qwen2', 'Yi'] 支持的模型类型
+    "model_path": "/workspace/Models/Yi-34B-Chat",  # 模型路径
     "lora_path": "",  # lora路径
-    "model_name": "xxx",  # 模型名
+    "model_name": "Yi_34B",  # 模型名
     "limit_worker_concurrency": 5,
     "multimodal": False,  # 是否是多模态模型
     "device": "cuda",
     "dtype": "bfloat16",  # ["float32", "float16", "bfloat16"],  # 模型精度，推荐bfloat16
     "gpu_memory_utilization": 0.9,
-    "dead_line": 10 * 60
+    "dead_line": 6 * 60
 }
 
 
