@@ -47,7 +47,11 @@ class Yi(BaseModel):
         self.device = None
         self.logger = logger
         self._load_model(model_path, lora_path, device, dtype, just_tokenizer)
-        self.max_length = 8 * 1024  # in config.py set "rope_scaling": {"type": "dynamic", "factor": 2.0}
+        try:
+            self.max_length = self.model.config.max_position_embeddings
+        except:
+            self.max_length = 4 * 1024  # in config.py set "rope_scaling": {"type": "dynamic", "factor": 2.0}
+
         self.max_new_tokens = 2048
 
         if self.logger:
