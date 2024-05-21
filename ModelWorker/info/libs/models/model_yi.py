@@ -169,6 +169,8 @@ class Yi(BaseModel):
         first_token_latency = None
         last_token_time = time.time()
         token_latency = []
+        last_generation_tokens = 0
+        generation_tokens_same_count = 0
         start = time.time()
         if (not use_lora) and self.is_lora:
             with self.model.disable_adapter():
@@ -191,6 +193,11 @@ class Yi(BaseModel):
                     avg_token_latency = sum(token_latency) / len(token_latency)
                     last_token_time = time.time()
                     generation_tokens = len(self.tokenizer.encode(answer))
+                    if generation_tokens == last_generation_tokens:
+                        generation_tokens_same_count += 1
+                    else:
+                        last_generation_tokens = generation_tokens
+                        generation_tokens_same_count = 0
                     time_cost = time.time() - start
 
                     # exit
@@ -219,6 +226,9 @@ class Yi(BaseModel):
                         }
                     }
 
+                    if generation_tokens_same_count > 6:
+                        break
+
         else:
             streamer = TextIteratorStreamer(self.tokenizer, skip_prompt=True, skip_special_tokens=True)
             thread = Thread(target=self.model.generate,
@@ -236,6 +246,11 @@ class Yi(BaseModel):
                 avg_token_latency = sum(token_latency) / len(token_latency)
                 last_token_time = time.time()
                 generation_tokens = len(self.tokenizer.encode(answer))
+                if generation_tokens == last_generation_tokens:
+                    generation_tokens_same_count += 1
+                else:
+                    last_generation_tokens = generation_tokens
+                    generation_tokens_same_count = 0
                 time_cost = time.time() - start
 
                 # exit
@@ -263,6 +278,9 @@ class Yi(BaseModel):
                         "average_speed": average_speed
                     }
                 }
+
+                if generation_tokens_same_count > 6:
+                    break
 
         torch_gc(self.device)
         gc.collect()
