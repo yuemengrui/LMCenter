@@ -99,6 +99,9 @@ class VLLMWorker(BaseModelWorker):
         )
         prompt, prompt_token_ids = self.model.build_chat_inputs(prompt=prompt)
 
+        first_token_latency = None
+        last_token_time = time.time()
+        token_latency = []
         start = time.time()
         results_generator = self.llm_engine.generate(prompt, sampling_params, request_id)
 
@@ -119,6 +122,12 @@ class VLLMWorker(BaseModelWorker):
                 for output in request_output.outputs:
                     output.finish_reason = "abort"
 
+            if first_token_latency is None:
+                first_token_latency = time.time() - start
+            token_latency.append(time.time() - last_token_time)
+            token_latency.sort()
+            avg_token_latency = sum(token_latency) / len(token_latency)
+            last_token_time = time.time()
             prompt_tokens = len(request_output.prompt_token_ids)
             completion_tokens = sum(
                 len(output.token_ids) for output in request_output.outputs
@@ -127,11 +136,20 @@ class VLLMWorker(BaseModelWorker):
             ret = {"model_name": self.model.model_name,
                    "answer": text_outputs,
                    "history": [],
-                   "time_cost": {"generation": f"{time_cost:.3f}s"},
-                   "usage": {"prompt_tokens": prompt_tokens,
-                             "generation_tokens": completion_tokens,
-                             "total_tokens": prompt_tokens + completion_tokens,
-                             "average_speed": f"{completion_tokens / time_cost:.3f} token/s"}
+                   "time_cost": {
+                       "generation": f"{time_cost:.3f}s",
+                       "first_token_latency": f"{first_token_latency * 1000:.2f}ms",
+                       "token_latency": {
+                           "min": f"{token_latency[0] * 1000:.2f}ms",
+                           "max": f"{token_latency[-1] * 1000:.2f}ms",
+                           "avg": f"{avg_token_latency * 1000:.2f}ms",
+                       }
+                   },
+                   "usage": {
+                       "prompt_tokens": prompt_tokens,
+                       "generation_tokens": completion_tokens,
+                       "total_tokens": prompt_tokens + completion_tokens,
+                       "average_speed": f"{completion_tokens / time_cost:.3f} token/s"}
                    }
             yield json.dumps(ret, ensure_ascii=False).encode() + b"\0"
 
