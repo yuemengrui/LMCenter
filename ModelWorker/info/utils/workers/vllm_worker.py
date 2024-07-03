@@ -105,6 +105,7 @@ class VLLMWorker(BaseModelWorker):
         start = time.time()
         results_generator = self.llm_engine.generate(prompt, sampling_params, request_id)
 
+        ret = {}
         async for request_output in results_generator:
             text_outputs = [output.text for output in request_output.outputs]
             text_outputs = " ".join(text_outputs)
@@ -155,6 +156,8 @@ class VLLMWorker(BaseModelWorker):
 
             if aborted:
                 break
+
+        logger.info(ret)
 
     async def generate_gate(self, **kwargs):
         async for x in self.generate_stream_gate(**kwargs):
