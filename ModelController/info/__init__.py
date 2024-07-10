@@ -40,7 +40,7 @@ def app_registry(app):
 
     app.mount("/static", StaticFiles(directory=f"static"), name="static")
 
-    @app.get("/docs", include_in_schema=False)
+    @app.get("/ai/llm/docs", include_in_schema=False)
     async def custom_swagger_ui_html():
         return get_swagger_ui_html(
             openapi_url=app.openapi_url,
@@ -54,7 +54,7 @@ def app_registry(app):
     async def swagger_ui_redirect():
         return get_swagger_ui_oauth2_redirect_html()
 
-    @app.get("/redoc", include_in_schema=False)
+    @app.get("/ai/llm/redoc", include_in_schema=False)
     async def redoc_html():
         return get_redoc_html(
             openapi_url=app.openapi_url,
