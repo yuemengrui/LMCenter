@@ -13,6 +13,16 @@ services:
     environment:
       - TZ=Asia/Shanghai
     privileged: true
+    depends_on:
+      model_controller:
+        condition: service_healthy
+        restart: true
+      ocr_center:
+        condition: service_healthy
+        restart: true
+      embedding_server:
+        condition: service_healthy
+        restart: true
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost/6000", "||", "exit", "1"]
       interval: 60s
