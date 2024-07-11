@@ -24,7 +24,7 @@ services:
         condition: service_healthy
         restart: true
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/6000", "||", "exit", "1"]
+      test: ["CMD", "curl", "-f", "http://localhost:6000/health"]
       interval: 60s
       start_period: 60s
       timeout: 10s
