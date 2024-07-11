@@ -1,0 +1,175 @@
+services:
+  general_ai_nginx:
+    container_name: general_ai_nginx
+    image: nginx
+    restart: unless-stopped
+    networks:
+      - generalainet
+    ports:
+      - "6000:6000"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./logs:/workspace/logs
+    environment:
+      - TZ=Asia/Shanghai
+    privileged: true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/6000", "||", "exit", "1"]
+      interval: 60s
+      start_period: 60s
+      timeout: 10s
+      retries: 5
+
+
+
+  ocr_center:
+    container_name: ocr_center
+    image: registry.cn-beijing.aliyuncs.com/yuemengrui/ocr_center:v4-0.8
+    command: [ "/bin/bash", "-c", "/root/workspace/OCR_Center/ai_server/docker_run.sh" ]
+    ports:
+      - "24666:24666"
+    restart: unless-stopped
+    networks:
+      - generalainet
+    shm_size: "1gb"
+    stdin_open: true
+    tty: true
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:24666/ai/ocr/test" ]
+      interval: 5m
+      start_period: 120s
+      timeout: 20s
+      retries: 5
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: [ "0" ]
+              capabilities: [ gpu ]
+
+
+
+  embedding_server:
+    container_name: embedding_server
+    image: registry.cn-beijing.aliyuncs.com/yuemengrui/ai:pytorch2.0.1-cuda11.8-cudnn8-ubuntu20.04-py311-v0.2
+    command: [ "/bin/bash", "-c", "/workspace/Embedding_Server/docker_run.sh" ]
+    volumes:
+      - ./Embedding_Server/Embedding_Server:/workspace/Embedding_Server
+      - ./DATA/Models:/workspace/Models
+    ports:
+      - "24613:24613"
+    restart: unless-stopped
+    networks:
+      - generalainet
+    shm_size: "2gb"
+    stdin_open: true
+    tty: true
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:24613/ai/health" ]
+      interval: 60s
+      start_period: 120s
+      timeout: 10s
+      retries: 5
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: [ "0" ]
+              capabilities: [ gpu ]
+
+  model_controller:
+    container_name: model_controller
+    image: registry.cn-beijing.aliyuncs.com/yuemengrui/ai:py311-ubuntu20.04-0.2
+    command: [ "/bin/bash", "-c", "/workspace/ModelController/docker_run.sh" ]
+    volumes:
+      - ./LMCenter/ModelController:/workspace/ModelController
+    ports:
+      - "24620:24620"
+    restart: unless-stopped
+    networks:
+      - generalainet
+    stdin_open: true
+    tty: true
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:24620/ai/health" ]
+      interval: 60s
+      start_period: 60s
+      timeout: 10s
+      retries: 5
+
+  baichuan2_13b_worker_1:
+    container_name: baichuan2_13b_worker_1
+    image: registry.cn-beijing.aliyuncs.com/yuemengrui/ai:pytorch2.1.2-cuda12.1-cudnn8-ubuntu20.04-py311-0.1
+    command: [ "/bin/bash", "-c", "/workspace/ModelWorker/docker_run.sh" ]
+    depends_on:
+      model_controller:
+        condition: service_healthy
+        restart: true
+    volumes:
+      - ./LMCenter/ModelWorker:/workspace/ModelWorker
+      - ./LMCenter/ModelWorker/configs/baichuan2_13b_configs.py:/workspace/ModelWorker/configs/configs.py
+      - ./DATA/Models/Baichuan2_13B:/workspace/Models/Baichuan2-13B-Chat
+    ports:
+      - "24621:24621"
+    restart: unless-stopped
+    networks:
+      - generalainet
+    shm_size: "4gb"
+    stdin_open: true
+    tty: true
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:24621/ai/health" ]
+      interval: 60s
+      start_period: 120s
+      timeout: 10s
+      retries: 5
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: [ "1" ]
+              capabilities: [ gpu ]
+
+  baichuan2_13b_worker_2:
+    container_name: baichuan2_13b_worker_2
+    image: registry.cn-beijing.aliyuncs.com/yuemengrui/ai:pytorch2.1.2-cuda12.1-cudnn8-ubuntu20.04-py311-0.1
+    command: [ "/bin/bash", "-c", "/workspace/ModelWorker/docker_run.sh" ]
+    depends_on:
+      model_controller:
+        condition: service_healthy
+        restart: true
+    volumes:
+      - ./LMCenter/ModelWorker:/workspace/ModelWorker
+      - ./LMCenter/ModelWorker/configs/baichuan2_13b_configs.py:/workspace/ModelWorker/configs/configs.py
+      - ./DATA/Models/Baichuan2_13B:/workspace/Models/Baichuan2-13B-Chat
+    ports:
+      - "24622:24621"
+    restart: unless-stopped
+    networks:
+      - generalainet
+    shm_size: "4gb"
+    stdin_open: true
+    tty: true
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:24621/ai/health" ]
+      interval: 60s
+      start_period: 120s
+      timeout: 10s
+      retries: 5
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: [ "2" ]
+              capabilities: [ gpu ]
+
+
+
+networks:
+  generalainet:
+    driver: bridge
+    name: generalainet
