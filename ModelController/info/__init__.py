@@ -43,7 +43,7 @@ def app_registry(app):
     @app.get("/ai/llm/docs", include_in_schema=False)
     async def custom_swagger_ui_html():
         return get_swagger_ui_html(
-            openapi_url="/ai/llm/openapi.json",
+            openapi_url=app.openapi_url,
             title=app.title + " - Swagger UI",
             oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
             swagger_js_url="/ai/llm/static/swagger-ui-bundle.js",
@@ -57,7 +57,7 @@ def app_registry(app):
     @app.get("/ai/llm/redoc", include_in_schema=False)
     async def redoc_html():
         return get_redoc_html(
-            openapi_url="/ai/llm/openapi.json",
+            openapi_url=app.openapi_url,
             title=app.title + " - ReDoc",
             redoc_js_url="/ai/llm/static/redoc.standalone.js",
         )

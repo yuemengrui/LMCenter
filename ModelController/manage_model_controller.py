@@ -3,7 +3,7 @@ import uvicorn
 from fastapi import FastAPI
 from configs import FASTAPI_TITLE, FASTAPI_HOST, FASTAPI_PORT
 
-app = FastAPI(title=FASTAPI_TITLE, docs_url=None, redoc_url=None)
+app = FastAPI(title=FASTAPI_TITLE, docs_url=None, redoc_url=None, openapi_url="/ai/llm/openapi.json")
 
 if __name__ == '__main__':
     config = uvicorn.Config(app=app, host=FASTAPI_HOST, port=FASTAPI_PORT)
