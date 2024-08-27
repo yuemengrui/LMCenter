@@ -1,6 +1,8 @@
 # *_*coding:utf-8 *_*
 import time
+import asyncio
 from mylogger import logger
+from fastapi import BackgroundTasks
 from fastapi.requests import Request
 from starlette.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -11,10 +13,36 @@ from fastapi.openapi.docs import (
     get_swagger_ui_oauth2_redirect_html,
 )
 from fastapi.staticfiles import StaticFiles
-from info.utils.workers import build_worker
+from info.utils.workers import build_worker, ModelWorker
 from configs import ModelWorkerConfig
 
 worker = build_worker(**ModelWorkerConfig)
+
+
+def release_worker_semaphore():
+    worker.semaphore.release()
+
+
+def acquire_worker_semaphore():
+    if worker.semaphore is None:
+        worker.semaphore = asyncio.Semaphore(worker.limit_worker_concurrency)
+    return worker.semaphore.acquire()
+
+
+def create_background_tasks(request_id=None):
+    if isinstance(worker, ModelWorker):
+        background_tasks = BackgroundTasks()
+        background_tasks.add_task(release_worker_semaphore)
+        return background_tasks
+    else:
+        async def abort_request() -> None:
+            await worker.llm_engine.abort(request_id)
+
+        background_tasks = BackgroundTasks()
+        background_tasks.add_task(release_worker_semaphore)
+        background_tasks.add_task(abort_request)
+        return background_tasks
+
 
 limiter = Limiter(key_func=lambda *args, **kwargs: '127.0.0.1')
 
