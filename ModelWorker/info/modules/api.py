@@ -7,7 +7,7 @@ from info import logger, limiter, worker, acquire_worker_semaphore, release_work
 from configs import API_LIMIT
 from .protocol import ChatRequest, TokenCountRequest, TokenCountResponse
 from fastapi.responses import JSONResponse, StreamingResponse
-from info.utils.workers import ModelWorker
+from info.utils.workers import ModelWorker, APIWorker
 
 router = APIRouter()
 
@@ -43,7 +43,7 @@ async def llm_chat(request: Request,
 
     await acquire_worker_semaphore()
 
-    if isinstance(worker, ModelWorker):
+    if isinstance(worker, (ModelWorker, APIWorker)):
         if req.stream:
             generator = worker.generate_stream_gate(**req.dict())
             background_tasks = create_background_tasks()
