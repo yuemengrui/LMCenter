@@ -19,7 +19,8 @@ class APIWorker(BaseModelWorker):
             worker_id: str,
             model_name: str,
             limit_worker_concurrency: int,
-            token='',
+            token="",
+            api_url="",
             seed: Optional[int] = None,
             multimodal=False,
             **kwargs,
@@ -33,8 +34,8 @@ class APIWorker(BaseModelWorker):
             multimodal
         )
 
+        self.api_url = api_url
         self.headers = {"Authorization": "Bearer " + token}
-        logger.info(f"Loading the model {self.model_name} on worker {worker_id} ...")
 
         self.seed = seed
 
@@ -59,7 +60,7 @@ class APIWorker(BaseModelWorker):
         try:
             if self.seed is not None:
                 set_seed(self.seed)
-            async for output in generate_completion_stream(self.worker_addr, payload=payload, headers=self.headers, start=start):
+            async for output in generate_completion_stream(self.api_url, payload=payload, headers=self.headers, start=start):
                 yield json.dumps(output, ensure_ascii=False).encode() + b"\0"
         except torch.cuda.OutOfMemoryError as e:
             ret = {
