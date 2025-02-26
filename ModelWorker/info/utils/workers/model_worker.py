@@ -61,6 +61,7 @@ class ModelWorker(BaseModelWorker):
             }
             yield json.dumps(ret, ensure_ascii=False).encode() + b"\0"
         except (ValueError, RuntimeError) as e:
+            logger.error({'EXCEPTION': e})
             ret = {
                 "errcode": RET.SERVERERR,
                 "errmsg": error_map[RET.SERVERERR]

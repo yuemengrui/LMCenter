@@ -110,7 +110,7 @@ async def llm_chat_simple(request: Request,
                                  media_type="text/event-stream")
     else:
         resp = await fetch_remote(url=worker_addr + '/ai/worker/generate', payload=req.dict())
-        resp['time_cost'].update({'total': f"{time.time() - start:.3f}s"})
+        # resp['time_cost'].update({'total': f"{time.time() - start:.3f}s"})
 
         return JSONResponse(resp)
 
@@ -132,5 +132,5 @@ async def generate_completion_stream(payload, worker_addr: str, start):
                     if not chunk:
                         continue
                     resp = json.loads(chunk.decode())
-                    resp['time_cost'].update({'total': f"{time.time() - start:.3f}s"})
+                    # resp['time_cost'].update({'total': f"{time.time() - start:.3f}s"})
                     yield json.dumps(resp, ensure_ascii=False)
