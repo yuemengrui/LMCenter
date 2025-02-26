@@ -98,12 +98,12 @@ async def llm_chat_simple(request: Request,
         return JSONResponse(
             ErrorResponse(errcode=RET.SERVERERR, errmsg=f"No available worker for {req.model_name}").dict())
 
-    resp = await fetch_remote(url=worker_addr + '/ai/worker/token_count', payload=req.dict())
-    if resp['status'] != 'ok':
-        return JSONResponse(ErrorResponse(errcode=RET.TOKEN_OVERFLOW,
-                                          errmsg=error_map[
-                                                     RET.TOKEN_OVERFLOW] + f"当前prompt token:{resp['prompt_tokens']} 支持的最大token:{resp['max_tokens']}").dict(),
-                            status_code=413)
+    # resp = await fetch_remote(url=worker_addr + '/ai/worker/token_count', payload=req.dict())
+    # if resp['status'] != 'ok':
+    #     return JSONResponse(ErrorResponse(errcode=RET.TOKEN_OVERFLOW,
+    #                                       errmsg=error_map[
+    #                                                  RET.TOKEN_OVERFLOW] + f"当前prompt token:{resp['prompt_tokens']} 支持的最大token:{resp['max_tokens']}").dict(),
+    #                         status_code=413)
 
     if req.stream:
         return StreamingResponse(generate_completion_stream(payload=req.dict(), worker_addr=worker_addr, start=start),

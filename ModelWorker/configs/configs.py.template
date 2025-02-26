@@ -16,8 +16,9 @@ ModelWorkerConfig = {
     "controller_addr": "http://model_controller:24620",  # controller地址
     "worker_addr": f"http://xxx:{FASTAPI_PORT}",  # worker地址，将xxx替换为你的容器名
     "worker_id": WORKER_ID,
-    "worker_type": "",  # vllm or others, worker类型，可以选择是否启用vllm
-    "model_type": "xx",  # ['Baichuan', 'ChatGLM3', 'Qwen2', 'Yi'] 支持的模型类型
+    "worker_type": "",  # vllm or api or others, worker类型，可以选择是否启用vllm
+    "model_type": "xx",  # ['Baichuan', 'ChatGLM3', 'Qwen2', 'Yi', ''] 支持的模型类型
+    "token": "",  # worker_type==api时，表示对接第三方标准openai api风格的大模型接口，这个为对接时需要的token
     "model_path": "xxx",  # 模型路径
     "lora_path": "",  # lora路径
     "model_name": "xxx",  # 模型名

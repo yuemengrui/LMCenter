@@ -13,6 +13,10 @@ def build_worker(worker_type=None, lora_path='', **kwargs):
         except Exception as e:
             logger.error({'EXCEPTION': e})
 
+    if worker_type == 'api':  # 接入大模型API，大模型API必须是标准openai API风格
+        from .api_worker import APIWorker
+        return APIWorker(**kwargs)
+
     return ModelWorker(lora_path=lora_path, **kwargs)
 
 

@@ -15,7 +15,7 @@ logger.add(
     enqueue=True,
     backtrace=True,
     encoding="utf-8",
-    format="{time:YYYY-MM-DD HH:MM:SS.SSS}|{level}|{name}:{function}:{line} - {message}"
+    format="{time:YYYY-MM-DD HH:mm:ss.SSS}|{level}|{name}:{function}:{line} - {message}"
 )
 
 
